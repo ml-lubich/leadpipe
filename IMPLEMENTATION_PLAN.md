@@ -7,9 +7,9 @@
 - [x] Commit
 
 ## Iteration 2: Landing Page
-- [ ] Build compelling marketing landing page
-- [ ] Hero section, features, pricing, CTA
-- [ ] Commit
+- [x] Build compelling marketing landing page
+- [x] Hero section, features, pricing, CTA
+- [x] Commit
 
 ## Iteration 3: Auth
 - [ ] Supabase client setup
