@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { TIER_LIMITS } from "@/types";
 import OpenAI from "openai";
 
 export async function POST(request: Request) {
@@ -23,6 +24,24 @@ export async function POST(request: Request) {
       { error: "campaign_id is required" },
       { status: 400 }
     );
+  }
+
+  // Check subscription tier limits
+  const { data: profile } = await supabase
+    .from("users")
+    .select("subscription_tier, leads_used_this_month")
+    .eq("id", user.id)
+    .single();
+
+  if (profile) {
+    const tier = (profile.subscription_tier || "free") as keyof typeof TIER_LIMITS;
+    const limits = TIER_LIMITS[tier];
+    if (limits.leads_per_month > 0 && profile.leads_used_this_month >= limits.leads_per_month) {
+      return Response.json(
+        { error: `Lead limit reached (${limits.leads_per_month}/month). Upgrade your plan for more leads.` },
+        { status: 403 }
+      );
+    }
   }
 
   // Verify campaign ownership
@@ -56,11 +75,13 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 500 });
     }
 
-    // Update campaign lead count
+    // Update campaign lead count and user usage
+    const insertedCount = inserted?.length || 0;
     await supabase
       .from("campaigns")
-      .update({ leads_found: (campaign.leads_found || 0) + (inserted?.length || 0) })
+      .update({ leads_found: (campaign.leads_found || 0) + insertedCount })
       .eq("id", campaign_id);
+    await supabase.rpc("increment_leads_used", { user_id_param: user.id, amount: insertedCount }).maybeSingle();
 
     return Response.json({ leads: inserted, source: "mock" }, { status: 201 });
   }
@@ -129,11 +150,13 @@ Return ONLY a JSON array, no other text.`,
       return Response.json({ error: error.message }, { status: 500 });
     }
 
-    // Update campaign lead count
+    // Update campaign lead count and user usage
+    const aiInsertedCount = inserted?.length || 0;
     await supabase
       .from("campaigns")
-      .update({ leads_found: (campaign.leads_found || 0) + (inserted?.length || 0) })
+      .update({ leads_found: (campaign.leads_found || 0) + aiInsertedCount })
       .eq("id", campaign_id);
+    await supabase.rpc("increment_leads_used", { user_id_param: user.id, amount: aiInsertedCount }).maybeSingle();
 
     return Response.json({ leads: inserted, source: "ai" }, { status: 201 });
   } catch (err) {
