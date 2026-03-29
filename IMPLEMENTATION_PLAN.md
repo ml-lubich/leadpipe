@@ -12,10 +12,10 @@
 - [x] Commit
 
 ## Iteration 3: Auth
-- [ ] Supabase client setup
-- [ ] Google OAuth login/logout
-- [ ] Protected route middleware
-- [ ] Commit
+- [x] Supabase client setup
+- [x] Google OAuth login/logout
+- [x] Protected route middleware
+- [x] Commit
 
 ## Iteration 4: Dashboard + Campaign Creation
 - [ ] Dashboard overview page
