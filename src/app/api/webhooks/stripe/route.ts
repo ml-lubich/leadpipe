@@ -65,13 +65,10 @@ export async function POST(request: Request) {
     }
 
     case "customer.subscription.updated": {
-      const subscription = event.data.object;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer;
+      const subscription = event.data.object as unknown as Record<string, unknown>;
+      const customerId = String(subscription.customer ?? "");
 
-      const status = subscription.status;
+      const status = String(subscription.status ?? "");
       const mappedStatus =
         status === "active" || status === "trialing"
           ? status
@@ -79,24 +76,25 @@ export async function POST(request: Request) {
             ? "past_due"
             : "canceled";
 
+      const periodEnd = subscription.current_period_end;
+      const periodEndDate =
+        typeof periodEnd === "number"
+          ? new Date(periodEnd * 1000).toISOString()
+          : null;
+
       await supabase
         .from("users")
         .update({
           subscription_status: mappedStatus,
-          current_period_end: new Date(
-            subscription.current_period_end * 1000
-          ).toISOString(),
+          current_period_end: periodEndDate,
         })
         .eq("stripe_customer_id", customerId);
       break;
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer;
+      const subscription = event.data.object as unknown as Record<string, unknown>;
+      const customerId = String(subscription.customer ?? "");
 
       await supabase
         .from("users")

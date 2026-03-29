@@ -88,7 +88,7 @@ export default function TemplatesClient({
           </p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger>
             <Button>New Template</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
