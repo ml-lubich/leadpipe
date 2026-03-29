@@ -18,10 +18,10 @@
 - [x] Commit
 
 ## Iteration 4: Dashboard + Campaign Creation
-- [ ] Dashboard overview page
-- [ ] Campaign creation form (trade + city)
-- [ ] Campaign list view
-- [ ] Commit
+- [x] Dashboard overview page
+- [x] Campaign creation form (trade + city)
+- [x] Campaign list view
+- [x] Commit
 
 ## Iteration 5: Lead Discovery
 - [ ] Generate mock leads for campaigns
