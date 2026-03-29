@@ -24,10 +24,10 @@
 - [x] Commit
 
 ## Iteration 5: Lead Discovery
-- [ ] Generate mock leads for campaigns
-- [ ] Lead table with sorting/filtering
-- [ ] AI lead scoring (0-100)
-- [ ] Commit
+- [x] Generate mock leads for campaigns
+- [x] Lead table with sorting/filtering
+- [x] AI lead scoring (0-100)
+- [x] Commit
 
 ## Iteration 6: Outreach
 - [ ] AI-generated personalized cold emails
