@@ -36,8 +36,8 @@
 - [x] Commit
 
 ## Iteration 7: Polish
-- [ ] Dark/light mode toggle
-- [ ] Mobile responsive
-- [ ] Loading states and error handling
-- [ ] README
-- [ ] Commit
+- [x] Dark/light mode toggle
+- [x] Mobile responsive
+- [x] Loading states and error handling
+- [x] README
+- [x] Commit

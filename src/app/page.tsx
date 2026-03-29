@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const trades = [
   "HVAC", "Plumbers", "Electricians", "Roofers", "Landscapers",
@@ -98,6 +99,7 @@ export default function Home() {
             <a href="#pricing" className="text-muted-foreground hover:text-foreground transition">Pricing</a>
           </nav>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm">Log in</Button>
             </Link>
