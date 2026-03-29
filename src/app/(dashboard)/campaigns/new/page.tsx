@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createClient } from "@/lib/supabase/client";
 
 const tradeTypes = [
   "HVAC",
@@ -30,7 +31,6 @@ const tradeTypes = [
   "Cleaners",
   "Pest Control",
   "General Contractors",
-  "Taco Trucks",
 ];
 
 export default function NewCampaignPage() {
@@ -38,16 +38,43 @@ export default function NewCampaignPage() {
   const [trade, setTrade] = useState("");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trade || !city) return;
 
     setLoading(true);
-    // Simulate campaign creation delay
-    await new Promise((r) => setTimeout(r, 1000));
-    // In a real app, this would create in Supabase and redirect to the campaign
-    router.push("/campaigns/1");
+    setError("");
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data, error: insertError } = await supabase
+        .from("campaigns")
+        .insert({
+          user_id: user.id,
+          name: `${trade} in ${city}`,
+          trade_type: trade,
+          location: city,
+          status: "active",
+        })
+        .select("id")
+        .single();
+
+      if (insertError) throw insertError;
+      router.push(`/campaigns/${data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create campaign");
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,14 +119,19 @@ export default function NewCampaignPage() {
                 placeholder="e.g. Austin, TX"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                maxLength={100}
               />
             </div>
+
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
 
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={!trade || !city || loading}
+              disabled={!trade || !city.trim() || loading}
             >
               {loading ? "Creating Campaign..." : "Create Campaign & Find Leads"}
             </Button>

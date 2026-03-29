@@ -1,0 +1,286 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Campaign, Lead } from "@/types";
+
+function getScoreColor(score: number) {
+  if (score >= 70) return "bg-green-100 text-green-800";
+  if (score >= 50) return "bg-yellow-100 text-yellow-800";
+  return "bg-red-100 text-red-800";
+}
+
+function getScoreLabel(score: number) {
+  if (score >= 70) return "Hot";
+  if (score >= 50) return "Warm";
+  return "Cold";
+}
+
+const statusColors: Record<string, string> = {
+  new: "bg-blue-100 text-blue-800",
+  contacted: "bg-yellow-100 text-yellow-800",
+  replied: "bg-green-100 text-green-800",
+  converted: "bg-purple-100 text-purple-800",
+};
+
+type SortKey = "lead_score" | "review_count" | "business_name";
+
+export default function CampaignDetail({
+  campaign,
+  leads: allLeads,
+}: {
+  campaign: Campaign;
+  leads: Lead[];
+}) {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("lead_score");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const filteredLeads = useMemo(() => {
+    let leads = allLeads.filter(
+      (l) =>
+        l.business_name.toLowerCase().includes(search.toLowerCase()) ||
+        l.owner_name.toLowerCase().includes(search.toLowerCase())
+    );
+    leads.sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDir === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      return sortDir === "asc"
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
+    });
+    return leads;
+  }, [allLeads, search, sortBy, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+  };
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortBy !== key) return "";
+    return sortDir === "asc" ? " \u2191" : " \u2193";
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{campaign.name}</h1>
+          <p className="text-muted-foreground">
+            {campaign.trade_type} &middot; {campaign.location} &middot;{" "}
+            {allLeads.length} leads found
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/campaigns/${campaign.id}/outreach`}>
+            <Button>Generate Outreach</Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Score breakdown */}
+      <div className="grid grid-cols-3 gap-4">
+        {(["Hot", "Warm", "Cold"] as const).map((label) => {
+          const count = allLeads.filter(
+            (l) => getScoreLabel(l.lead_score) === label
+          ).length;
+          const colors = {
+            Hot: "text-green-600",
+            Warm: "text-yellow-600",
+            Cold: "text-red-600",
+          };
+          return (
+            <Card key={label}>
+              <CardHeader className="pb-2">
+                <CardDescription>{label} Leads</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-3xl font-bold ${colors[label]}`}>{count}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {allLeads.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <p className="text-lg mb-2">No leads yet</p>
+            <p className="text-sm">
+              Use the API to generate leads for this campaign, or wait for lead
+              discovery to complete.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Search */}
+          <div className="flex gap-4">
+            <Input
+              placeholder="Search leads..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+
+          {/* Lead table */}
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => handleSort("business_name")}
+                    >
+                      Business{sortIndicator("business_name")}
+                    </TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Website</TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => handleSort("review_count")}
+                    >
+                      Reviews{sortIndicator("review_count")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => handleSort("lead_score")}
+                    >
+                      Score{sortIndicator("lead_score")}
+                    </TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLeads.map((lead) => (
+                    <TableRow key={lead.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{lead.business_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {lead.owner_name}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{lead.phone}</p>
+                          <p className="text-muted-foreground">{lead.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {lead.has_website ? (
+                          <Badge variant="outline" className="text-xs">
+                            Has site
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">
+                            No site
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            {lead.google_rating} ★
+                          </span>
+                          <span className="text-muted-foreground ml-1">
+                            ({lead.review_count})
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getScoreColor(lead.lead_score)}>
+                          {lead.lead_score} — {getScoreLabel(lead.lead_score)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[lead.status]}>
+                          {lead.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Scoring explanation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">How Lead Scoring Works</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div>
+              <p className="font-medium text-foreground mb-1">
+                Higher Score = Needs Your Help More
+              </p>
+              <ul className="space-y-1">
+                <li>+25 pts — No website</li>
+                <li>+20 pts — Under 10 Google reviews</li>
+                <li>+15 pts — Rating below 4.0</li>
+                <li>+10 pts — No social media presence</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-1">Score Ranges</p>
+              <ul className="space-y-1">
+                <li>
+                  <Badge className="bg-green-100 text-green-800 mr-2">
+                    70-100
+                  </Badge>{" "}
+                  Hot — likely to convert
+                </li>
+                <li>
+                  <Badge className="bg-yellow-100 text-yellow-800 mr-2">
+                    50-69
+                  </Badge>{" "}
+                  Warm — worth reaching out
+                </li>
+                <li>
+                  <Badge className="bg-red-100 text-red-800 mr-2">20-49</Badge>{" "}
+                  Cold — lower priority
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
