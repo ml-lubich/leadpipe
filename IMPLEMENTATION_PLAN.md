@@ -30,10 +30,10 @@
 - [x] Commit
 
 ## Iteration 6: Outreach
-- [ ] AI-generated personalized cold emails
-- [ ] Template builder/editor
-- [ ] Email sequence view
-- [ ] Commit
+- [x] AI-generated personalized cold emails
+- [x] Template builder/editor
+- [x] Email sequence view
+- [x] Commit
 
 ## Iteration 7: Polish
 - [ ] Dark/light mode toggle
