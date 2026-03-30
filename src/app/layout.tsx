@@ -86,7 +86,7 @@ const jsonLd = {
     {
       "@type": "Offer",
       name: "Pro",
-      price: "49",
+      price: "39",
       priceCurrency: "USD",
       billingIncrement: "P1M",
       description:
@@ -95,7 +95,7 @@ const jsonLd = {
     {
       "@type": "Offer",
       name: "Agency",
-      price: "149",
+      price: "79",
       priceCurrency: "USD",
       billingIncrement: "P1M",
       description:

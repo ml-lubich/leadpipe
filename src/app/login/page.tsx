@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,37 +11,137 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const handleGoogleLogin = async () => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess("Check your email for a confirmation link to complete sign up.");
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        window.location.href = "/dashboard";
+      }
+    }
+
+    setLoading(false);
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-md">
+    <div className="flex flex-1 items-center justify-center px-4 py-12 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-950">
+      <Card className="w-full max-w-md backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-white/20 dark:border-slate-700/30 shadow-2xl shadow-blue-500/5">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="text-2xl font-bold text-primary">LeadPipe</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              LeadPipe
+            </span>
             <Badge variant="secondary" className="text-xs">AI</Badge>
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-2xl">
+            {isSignUp ? "Create your account" : "Welcome back"}
+          </CardTitle>
           <CardDescription>
-            Sign in to start finding leads for your business
+            {isSignUp
+              ? "Start finding leads for your trade business"
+              : "Sign in to your LeadPipe account"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-5">
+          <form onSubmit={handleEmailAuth} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-10"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder={isSignUp ? "Create a password (min 6 chars)" : "Enter your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="h-10"
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg px-3 py-2">
+                {success}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+              disabled={loading}
+            >
+              {loading
+                ? "Please wait..."
+                : isSignUp
+                  ? "Create Account"
+                  : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
           <Button
-            onClick={handleGoogleLogin}
+            variant="outline"
             size="lg"
-            className="w-full text-base"
+            className="w-full text-base opacity-60 cursor-not-allowed"
+            disabled
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -61,10 +162,31 @@ export default function LoginPage() {
               />
             </svg>
             Continue with Google
+            <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+              Coming soon
+            </Badge>
           </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            By signing in, you agree to our Terms of Service and Privacy Policy.
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+                setSuccess(null);
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground transition"
+            >
+              {isSignUp
+                ? "Already have an account? Sign in"
+                : "Don\u2019t have an account? Sign up"}
+            </button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
+
           <div className="text-center">
             <Link
               href="/"
