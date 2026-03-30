@@ -121,22 +121,15 @@ export async function POST(request: Request) {
     .in("id", leadIds)
     .eq("status", "new");
 
-  // Increment emails_sent on each campaign
+  // Atomically increment emails_sent on each campaign
   for (const campaignId of campaignIds) {
     const count = outreachItems.filter(
       (o) => o.campaign_id === campaignId
     ).length;
-    const { data: campaign } = await supabase
-      .from("campaigns")
-      .select("emails_sent")
-      .eq("id", campaignId)
-      .single();
-    if (campaign) {
-      await supabase
-        .from("campaigns")
-        .update({ emails_sent: campaign.emails_sent + count })
-        .eq("id", campaignId);
-    }
+    await supabase.rpc("increment_campaign_emails_sent", {
+      p_campaign_id: campaignId,
+      p_count: count,
+    });
   }
 
   return Response.json({ outreach: updated });
