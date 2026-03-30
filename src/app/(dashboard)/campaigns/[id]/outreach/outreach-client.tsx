@@ -61,10 +61,14 @@ export default function OutreachClient({
   );
   const [selectedLeadId, setSelectedLeadId] = useState(hotLeads[0]?.id || "");
   const [generatedEmails, setGeneratedEmails] = useState<
-    { leadId: string; subject: string; body: string }[]
+    { id: string; leadId: string; subject: string; body: string }[]
   >([]);
   const [editedBodies, setEditedBodies] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
+  const [sending, setSending] = useState<Record<string, boolean>>({});
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
   const [previewEmail, setPreviewEmail] = useState<{
     leadId: string;
@@ -117,7 +121,8 @@ export default function OutreachClient({
       const data = await res.json();
       setGeneratedEmails(
         data.outreach.map(
-          (o: { lead_id: string; subject: string; body: string }) => ({
+          (o: { id: string; lead_id: string; subject: string; body: string }) => ({
+            id: o.id,
             leadId: o.lead_id,
             subject: o.subject,
             body: o.body,
@@ -125,9 +130,11 @@ export default function OutreachClient({
         )
       );
       setEditedBodies({});
+      setSentIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate");
       const emails = hotLeads.slice(0, 10).map((lead) => ({
+        id: "",
         leadId: lead.id,
         subject: personalizeTemplate(
           template.subject_template,
@@ -142,6 +149,7 @@ export default function OutreachClient({
       }));
       setGeneratedEmails(emails);
       setEditedBodies({});
+      setSentIds(new Set());
     } finally {
       setGenerating(false);
     }
@@ -149,6 +157,55 @@ export default function OutreachClient({
 
   const getEmailBody = (email: { leadId: string; body: string }) =>
     editedBodies[email.leadId] ?? email.body;
+
+  const draftEmails = generatedEmails.filter(
+    (e) => e.id && !sentIds.has(e.id)
+  );
+
+  const sendOutreach = async (outreachIds: string[]) => {
+    const res = await fetch("/api/outreach/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ outreach_ids: outreachIds }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to send emails");
+    }
+    return res.json();
+  };
+
+  const handleSendOne = async (outreachId: string) => {
+    setSending((prev) => ({ ...prev, [outreachId]: true }));
+    setError("");
+    setSuccessMessage("");
+    try {
+      await sendOutreach([outreachId]);
+      setSentIds((prev) => new Set([...prev, outreachId]));
+      setSuccessMessage("Email sent successfully!");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send");
+    } finally {
+      setSending((prev) => ({ ...prev, [outreachId]: false }));
+    }
+  };
+
+  const handleSendAll = async () => {
+    const ids = draftEmails.map((e) => e.id);
+    if (ids.length === 0) return;
+    setSendingAll(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      await sendOutreach(ids);
+      setSentIds((prev) => new Set([...prev, ...ids]));
+      setSuccessMessage(`${ids.length} email${ids.length > 1 ? "s" : ""} sent successfully!`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send");
+    } finally {
+      setSendingAll(false);
+    }
+  };
 
   if (templates.length === 0) {
     return (
@@ -287,12 +344,36 @@ export default function OutreachClient({
 
         {/* Generated emails list */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">
-            Generated Emails{" "}
-            {generatedEmails.length > 0 && (
-              <Badge variant="secondary">{generatedEmails.length}</Badge>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Generated Emails{" "}
+              {generatedEmails.length > 0 && (
+                <Badge variant="secondary">{generatedEmails.length}</Badge>
+              )}
+            </h2>
+            {draftEmails.length > 0 && (
+              <Button
+                onClick={handleSendAll}
+                disabled={sendingAll}
+                size="sm"
+              >
+                {sendingAll ? (
+                  <>
+                    <span className="animate-spin mr-2 inline-block h-4 w-4 rounded-full border-2 border-muted border-t-primary-foreground" />
+                    Sending...
+                  </>
+                ) : (
+                  `Send All (${draftEmails.length})`
+                )}
+              </Button>
             )}
-          </h2>
+          </div>
+
+          {successMessage && (
+            <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3">
+              <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+            </div>
+          )}
 
           {generatedEmails.length === 0 && !generating ? (
             <Card>
@@ -328,12 +409,38 @@ export default function OutreachClient({
                         >
                           Preview
                         </Button>
-                        <Badge
-                          variant="outline"
-                          className="dark:border-border"
-                        >
-                          Draft
-                        </Badge>
+                        {email.id && !sentIds.has(email.id) ? (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSendOne(email.id)}
+                              disabled={sending[email.id] || sendingAll}
+                            >
+                              {sending[email.id] ? (
+                                <span className="animate-spin inline-block h-4 w-4 rounded-full border-2 border-muted border-t-primary-foreground" />
+                              ) : (
+                                "Send"
+                              )}
+                            </Button>
+                            <Badge
+                              variant="outline"
+                              className="dark:border-border"
+                            >
+                              Draft
+                            </Badge>
+                          </>
+                        ) : email.id ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            Sent
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="dark:border-border"
+                          >
+                            Draft
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <CardDescription className="text-xs">

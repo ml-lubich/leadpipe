@@ -47,7 +47,7 @@ Full audit performed 2026-03-29. Updated 2026-03-30.
 
 | # | File | Bug | Status |
 |---|------|-----|--------|
-| 20 | `outreach/page.tsx` | "Send" button does nothing | Open — emails stay in Draft, no send endpoint |
+| 20 | `outreach/page.tsx` | "Send" button does nothing | **FIXED** — POST `/api/outreach/send` endpoint + Send/Send All buttons with Resend integration |
 | 21 | `settings/page.tsx` | "Upgrade to Pro" button does nothing | **FIXED** — calls `/api/stripe/checkout` |
 | 22 | `settings/page.tsx` | "Delete Account" button does nothing | Open — no delete account functionality |
 | 23 | `campaigns/new/page.tsx` | No input validation, "Taco Trucks" joke entry | Low — cosmetic |
