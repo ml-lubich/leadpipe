@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Campaign, Lead } from "@/types";
 
 function getScoreColor(score: number) {
@@ -44,6 +60,12 @@ const statusColors: Record<string, string> = {
     "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   converted:
     "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+};
+
+const campaignStatusColors: Record<Campaign["status"], string> = {
+  active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  completed: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
 };
 
 type SortKey = "lead_score" | "review_count" | "business_name";
@@ -116,11 +138,15 @@ export default function CampaignDetail({
   campaign: Campaign;
   leads: Lead[];
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("lead_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [generatingLeads, setGeneratingLeads] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const filteredLeads = useMemo(() => {
     const leads = allLeads.filter(
@@ -180,6 +206,49 @@ export default function CampaignDetail({
     }
   };
 
+  const updateCampaignStatus = async (status: Campaign["status"]) => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update campaign");
+      }
+      window.location.reload();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Failed to update campaign"
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const deleteCampaign = async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete campaign");
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Failed to delete campaign"
+      );
+      setActionLoading(false);
+    }
+  };
+
   const scoreBreakdownColors = {
     Hot: "text-green-600 dark:text-green-400",
     Warm: "text-yellow-600 dark:text-yellow-400",
@@ -191,7 +260,12 @@ export default function CampaignDetail({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{campaign.name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">{campaign.name}</h1>
+            <Badge className={campaignStatusColors[campaign.status]}>
+              {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             {campaign.trade_type} &middot; {campaign.location} &middot;{" "}
             {allLeads.length} leads found
@@ -211,12 +285,73 @@ export default function CampaignDetail({
           <Link href={`/campaigns/${campaign.id}/outreach`}>
             <Button>Generate Outreach</Button>
           </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="outline" disabled={actionLoading}>
+                {actionLoading ? "Updating..." : "Actions"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {campaign.status === "active" && (
+                <DropdownMenuItem onClick={() => updateCampaignStatus("paused")}>
+                  Pause Campaign
+                </DropdownMenuItem>
+              )}
+              {campaign.status === "paused" && (
+                <DropdownMenuItem onClick={() => updateCampaignStatus("active")}>
+                  Resume Campaign
+                </DropdownMenuItem>
+              )}
+              {campaign.status !== "completed" && (
+                <DropdownMenuItem onClick={() => updateCampaignStatus("completed")}>
+                  Mark Complete
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                Delete Campaign
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {generateError && (
-        <p className="text-sm text-destructive">{generateError}</p>
+      {(generateError || actionError) && (
+        <p className="text-sm text-destructive">{generateError || actionError}</p>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Campaign</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{campaign.name}&quot;? This
+              will permanently remove the campaign and all its leads. This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteCampaign}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Score breakdown */}
       <div className="grid grid-cols-3 gap-4">
