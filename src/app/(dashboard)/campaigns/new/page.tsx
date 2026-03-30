@@ -19,8 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createClient } from "@/lib/supabase/client";
-
 const tradeTypes = [
   "HVAC",
   "Plumbers",
@@ -48,29 +46,23 @@ export default function NewCampaignPage() {
     setError("");
 
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
+      const response = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trade_type: trade, location: city }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/login");
+          return;
+        }
+        throw new Error(data.error || "Failed to create campaign");
       }
 
-      const { data, error: insertError } = await supabase
-        .from("campaigns")
-        .insert({
-          user_id: user.id,
-          name: `${trade} in ${city}`,
-          trade_type: trade,
-          location: city,
-          status: "active",
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
-      router.push(`/campaigns/${data.id}`);
+      router.push(`/campaigns/${data.campaign.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create campaign");
       setLoading(false);

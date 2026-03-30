@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { TIER_LIMITS } from "@/types";
 
 export async function GET() {
   const supabase = await createClient();
@@ -56,6 +57,30 @@ export async function POST(request: Request) {
       { error: "Input too long" },
       { status: 400 }
     );
+  }
+
+  // Check subscription tier campaign limits
+  const { data: profile } = await supabase
+    .from("users")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  const tier = (profile?.subscription_tier || "free") as keyof typeof TIER_LIMITS;
+  const limits = TIER_LIMITS[tier];
+
+  if (limits.campaigns > 0) {
+    const { count } = await supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if ((count ?? 0) >= limits.campaigns) {
+      return Response.json(
+        { error: `Campaign limit reached (${limits.campaigns}). Upgrade your plan to create more campaigns.` },
+        { status: 403 }
+      );
+    }
   }
 
   const { data, error } = await supabase

@@ -100,8 +100,51 @@ describe("POST /api/campaigns", () => {
     expect(body.error).toContain("required");
   });
 
+  it("returns 403 when free tier campaign limit is reached", async () => {
+    // Build a separate chain for the "users" profile query
+    const profileChain: Record<string, ReturnType<typeof vi.fn>> = {};
+    profileChain.select = vi.fn().mockReturnValue(profileChain);
+    profileChain.eq = vi.fn().mockReturnValue(profileChain);
+    profileChain.single = vi.fn().mockResolvedValue({
+      data: { subscription_tier: "free" },
+      error: null,
+    });
+
+    // Build a separate chain for the "campaigns" count query
+    const countChain: Record<string, ReturnType<typeof vi.fn>> = {};
+    countChain.select = vi.fn().mockReturnValue(countChain);
+    countChain.eq = vi.fn().mockResolvedValue({ count: 1, data: null, error: null });
+
+    mockClient.from
+      .mockReturnValueOnce(profileChain)  // from("users")
+      .mockReturnValueOnce(countChain);   // from("campaigns") count query
+
+    const request = new Request("http://localhost/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify({ trade_type: "Plumbers", location: "Austin, TX" }),
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain("Campaign limit reached");
+  });
+
   it("creates a campaign", async () => {
     const created = { ...TEST_CAMPAIGN };
+
+    // Build a separate chain for the "users" profile query
+    const profileChain: Record<string, ReturnType<typeof vi.fn>> = {};
+    profileChain.select = vi.fn().mockReturnValue(profileChain);
+    profileChain.eq = vi.fn().mockReturnValue(profileChain);
+    profileChain.single = vi.fn().mockResolvedValue({
+      data: { subscription_tier: "pro" },
+      error: null,
+    });
+
+    mockClient.from.mockReturnValueOnce(profileChain);
+    // Next from("campaigns") call for insert uses default chain
     mockClient._chain.single.mockResolvedValueOnce({ data: created, error: null });
 
     const request = new Request("http://localhost/api/campaigns", {
