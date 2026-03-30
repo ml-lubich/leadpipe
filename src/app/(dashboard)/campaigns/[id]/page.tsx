@@ -27,7 +27,7 @@ export default async function CampaignPage({
     .from("leads")
     .select("*")
     .eq("campaign_id", id)
-    .order("lead_score", { ascending: false });
+    .order("website_score", { ascending: false });
 
   return (
     <CampaignDetail

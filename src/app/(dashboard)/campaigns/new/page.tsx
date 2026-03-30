@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,17 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-const tradeTypes = [
-  "HVAC",
-  "Plumbers",
-  "Electricians",
-  "Roofers",
-  "Landscapers",
-  "Painters",
-  "Cleaners",
-  "Pest Control",
-  "General Contractors",
-];
+import { TRADES } from "@/types";
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -49,7 +40,12 @@ export default function NewCampaignPage() {
       const response = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trade_type: trade, location: city }),
+        body: JSON.stringify({
+          trade_type: trade,
+          location: city,
+          trade,
+          city,
+        }),
       });
 
       const data = await response.json();
@@ -64,38 +60,47 @@ export default function NewCampaignPage() {
 
       router.push(`/campaigns/${data.campaign.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create campaign");
+      setError(
+        err instanceof Error ? err.message : "Failed to create campaign"
+      );
       setLoading(false);
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Link
+        href="/campaigns"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 mb-6"
+      >
+        &larr; Back to Campaigns
+      </Link>
+
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create Campaign</h1>
-        <p className="text-muted-foreground">
-          Pick a trade and city to start finding leads
+        <h1 className="text-2xl font-bold">New Campaign</h1>
+        <p className="text-sm text-muted-foreground">
+          Pick a trade and city to organize your outreach
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Campaign Details</CardTitle>
+          <CardTitle className="text-base">Campaign Details</CardTitle>
           <CardDescription>
-            We&apos;ll search for {trade || "businesses"} in{" "}
-            {city || "your target area"} and build your lead list.
+            We&apos;ll group leads for {trade || "businesses"} in{" "}
+            {city || "your target area"}.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="trade">Trade Type</Label>
+              <Label htmlFor="trade">Trade</Label>
               <Select value={trade} onValueChange={(v) => setTrade(v ?? "")}>
                 <SelectTrigger id="trade">
                   <SelectValue placeholder="Select a trade..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {tradeTypes.map((t) => (
+                  {TRADES.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
@@ -105,19 +110,17 @@ export default function NewCampaignPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="city">City / Location</Label>
+              <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                placeholder="e.g. Austin, TX"
+                placeholder="e.g. Los Angeles, CA"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 maxLength={100}
               />
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button
               type="submit"
@@ -125,7 +128,7 @@ export default function NewCampaignPage() {
               size="lg"
               disabled={!trade || !city.trim() || loading}
             >
-              {loading ? "Creating Campaign..." : "Create Campaign & Find Leads"}
+              {loading ? "Creating..." : "Create Campaign"}
             </Button>
           </form>
         </CardContent>

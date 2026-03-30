@@ -22,17 +22,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
-import { Template } from "@/types";
-
-const TEMPLATE_VARIABLES = [
-  "{{business_name}}",
-  "{{owner_name}}",
-  "{{trade_type}}",
-  "{{review_count}}",
-  "{{google_rating}}",
-];
+import { Template, TRADES, TEMPLATE_VARIABLES } from "@/types";
 
 function VariableHints() {
   return (
@@ -41,7 +40,7 @@ function VariableHints() {
         <Badge
           key={v}
           variant="secondary"
-          className="text-xs font-mono dark:bg-muted dark:text-muted-foreground"
+          className="text-xs font-mono"
         >
           {v}
         </Badge>
@@ -62,6 +61,7 @@ export default function TemplatesClient({
   const [newName, setNewName] = useState("");
   const [newSubject, setNewSubject] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [newTrade, setNewTrade] = useState("General");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,6 +69,7 @@ export default function TemplatesClient({
   const [editName, setEditName] = useState("");
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
+  const [editTrade, setEditTrade] = useState("General");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
@@ -83,9 +84,13 @@ export default function TemplatesClient({
       const { error: insertError } = await supabase.from("templates").insert({
         user_id: userId,
         name: newName,
-        trade_type: "General",
+        subject: newSubject,
+        body: newBody,
+        trade: newTrade,
+        // Keep old columns populated for backwards compat
         subject_template: newSubject,
         body_template: newBody,
+        trade_type: newTrade,
       });
 
       if (insertError) throw insertError;
@@ -93,6 +98,7 @@ export default function TemplatesClient({
       setNewName("");
       setNewSubject("");
       setNewBody("");
+      setNewTrade("General");
       setIsOpen(false);
       router.refresh();
     } catch (err) {
@@ -107,8 +113,9 @@ export default function TemplatesClient({
   const handleStartEdit = (t: Template) => {
     setEditingId(t.id);
     setEditName(t.name);
-    setEditSubject(t.subject_template);
-    setEditBody(t.body_template);
+    setEditSubject(t.subject || (t as Record<string, string>).subject_template || "");
+    setEditBody(t.body || (t as Record<string, string>).body_template || "");
+    setEditTrade(t.trade || (t as Record<string, string>).trade_type || "General");
     setEditError("");
   };
 
@@ -129,8 +136,12 @@ export default function TemplatesClient({
         .from("templates")
         .update({
           name: editName,
+          subject: editSubject,
+          body: editBody,
+          trade: editTrade,
           subject_template: editSubject,
           body_template: editBody,
+          trade_type: editTrade,
         })
         .eq("id", id);
 
@@ -153,13 +164,20 @@ export default function TemplatesClient({
     router.refresh();
   };
 
+  const getSubject = (t: Template) =>
+    t.subject || (t as Record<string, string>).subject_template || "";
+  const getBody = (t: Template) =>
+    t.body || (t as Record<string, string>).body_template || "";
+  const getTrade = (t: Template) =>
+    t.trade || (t as Record<string, string>).trade_type || "General";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Templates</h1>
-          <p className="text-muted-foreground">
-            Email templates for outreach campaigns
+          <h1 className="text-2xl font-bold">Outreach Templates</h1>
+          <p className="text-sm text-muted-foreground">
+            Email templates for consulting outreach
           </p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -170,18 +188,36 @@ export default function TemplatesClient({
             <DialogHeader>
               <DialogTitle>Create Template</DialogTitle>
               <DialogDescription>
-                Create a new email template with personalization variables
+                Create an outreach template with personalization variables
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <VariableHints />
-              <div className="space-y-2">
-                <Label>Template Name</Label>
-                <Input
-                  placeholder="e.g. Website Pitch"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Template Name</Label>
+                  <Input
+                    placeholder="e.g. Website Pitch"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Trade</Label>
+                  <Select value={newTrade} onValueChange={setNewTrade}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="General">General</SelectItem>
+                      {TRADES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Subject Line</Label>
@@ -199,9 +235,6 @@ export default function TemplatesClient({
                   value={newBody}
                   onChange={(e) => setNewBody(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground text-right">
-                  {newBody.length} characters
-                </p>
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button
@@ -219,10 +252,9 @@ export default function TemplatesClient({
       {initialTemplates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <div className="mx-auto mb-4 text-4xl">✉️</div>
             <p className="text-lg font-medium mb-2">No templates yet</p>
             <p className="text-sm mb-4">
-              Create your first email template to start sending outreach.
+              Create your first email template for consulting outreach.
             </p>
             <Button onClick={() => setIsOpen(true)}>Create Template</Button>
           </CardContent>
@@ -233,19 +265,37 @@ export default function TemplatesClient({
             editingId === t.id ? (
               <Card
                 key={t.id}
-                className="border-primary dark:border-primary/50"
+                className="border-primary/50"
               >
                 <CardHeader>
                   <CardTitle className="text-lg">Edit Template</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <VariableHints />
-                  <div className="space-y-2">
-                    <Label>Template Name</Label>
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Template Name</Label>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Trade</Label>
+                      <Select value={editTrade} onValueChange={setEditTrade}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="General">General</SelectItem>
+                          {TRADES.map((tr) => (
+                            <SelectItem key={tr} value={tr}>
+                              {tr}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Subject Line</Label>
@@ -261,9 +311,6 @@ export default function TemplatesClient({
                       onChange={(e) => setEditBody(e.target.value)}
                       rows={8}
                     />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {editBody.length} characters
-                    </p>
                   </div>
                   {editError && (
                     <p className="text-sm text-destructive">{editError}</p>
@@ -289,11 +336,8 @@ export default function TemplatesClient({
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{t.name}</CardTitle>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="dark:bg-muted dark:text-muted-foreground"
-                      >
-                        {t.trade_type}
+                      <Badge variant="secondary">
+                        {getTrade(t)}
                       </Badge>
                       <Button
                         variant="outline"
@@ -313,13 +357,13 @@ export default function TemplatesClient({
                     </div>
                   </div>
                   <CardDescription>
-                    Subject: {t.subject_template}
+                    Subject: {getSubject(t)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Separator className="mb-3" />
-                  <div className="whitespace-pre-wrap text-sm bg-muted/50 dark:bg-muted/20 p-4 rounded-md border dark:border-border max-h-40 overflow-y-auto">
-                    {t.body_template}
+                  <div className="whitespace-pre-wrap text-sm bg-muted/20 p-4 rounded-md border max-h-40 overflow-y-auto">
+                    {getBody(t)}
                   </div>
                 </CardContent>
               </Card>
