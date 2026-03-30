@@ -282,6 +282,14 @@ export default function CampaignDetail({
           >
             {generatingLeads ? "Generating..." : "Generate More Leads"}
           </Button>
+          {allLeads.length > 0 && (
+            <a
+              href={`/api/campaigns/${campaign.id}/export`}
+              download
+            >
+              <Button variant="outline">Export CSV</Button>
+            </a>
+          )}
           <Link href={`/campaigns/${campaign.id}/outreach`}>
             <Button>Generate Outreach</Button>
           </Link>

@@ -148,7 +148,7 @@ export default function SettingsClient({
               onClick={handleUpgrade}
               disabled={upgrading}
             >
-              {upgrading ? "Redirecting..." : "Upgrade to Pro \u2014 $49/month"}
+              {upgrading ? "Redirecting..." : "Upgrade to Pro \u2014 $39/month"}
             </Button>
           ) : (
             <Button
