@@ -67,7 +67,9 @@ async function checkSupabaseConnection(): Promise<HealthCheck> {
       const errorMessage = String(err.message ?? result.error);
       const isTableNotFound =
         errorMessage.includes("does not exist") ||
-        errorMessage.includes("relation");
+        errorMessage.includes("relation") ||
+        errorMessage.includes("Could not find the table") ||
+        errorMessage.includes("schema cache");
       if (isTableNotFound) {
         return {
           status: "pass",
