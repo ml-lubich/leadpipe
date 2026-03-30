@@ -158,7 +158,7 @@ describe("POST /api/webhooks/stripe", () => {
 
       expect(response.status).toBe(200);
       expect(body.received).toBe(true);
-      expect(mockAdminClient.from).toHaveBeenCalledWith("users");
+      expect(mockAdminClient.from).toHaveBeenCalledWith("profiles");
       expect(mockAdminClient._chain.update).toHaveBeenCalledWith({
         subscription_tier: "pro",
         subscription_status: "active",
@@ -186,6 +186,19 @@ describe("POST /api/webhooks/stripe", () => {
       expect(mockAdminClient._chain.eq).toHaveBeenCalledWith("id", "user-456");
     });
 
+    it("handles null metadata gracefully", async () => {
+      mockStripe.webhooks.constructEvent.mockReturnValueOnce(
+        makeEvent("checkout.session.completed", {
+          metadata: null,
+          customer: "cus_abc123",
+        })
+      );
+
+      const response = await POST(makeRequest("{}"));
+      expect(response.status).toBe(200);
+      expect(mockAdminClient._chain.update).not.toHaveBeenCalled();
+    });
+
     it("skips update when metadata is missing user_id", async () => {
       mockStripe.webhooks.constructEvent.mockReturnValueOnce(
         makeEvent("checkout.session.completed", {
@@ -199,7 +212,6 @@ describe("POST /api/webhooks/stripe", () => {
 
       expect(response.status).toBe(200);
       expect(body.received).toBe(true);
-      // Should not call update when userId is missing
       expect(mockAdminClient._chain.update).not.toHaveBeenCalled();
     });
 
@@ -225,17 +237,17 @@ describe("POST /api/webhooks/stripe", () => {
         makeEvent("customer.subscription.updated", {
           customer: "cus_abc123",
           status: "active",
-          current_period_end: 1735689600, // 2025-01-01T00:00:00Z
+          current_period_start: 1735689600, // 2025-01-01T00:00:00Z
         })
       );
 
       const response = await POST(makeRequest("{}"));
       expect(response.status).toBe(200);
 
-      expect(mockAdminClient.from).toHaveBeenCalledWith("users");
+      expect(mockAdminClient.from).toHaveBeenCalledWith("profiles");
       expect(mockAdminClient._chain.update).toHaveBeenCalledWith({
         subscription_status: "active",
-        current_period_end: new Date(1735689600 * 1000).toISOString(),
+        current_period_start: new Date(1735689600 * 1000).toISOString(),
       });
       expect(mockAdminClient._chain.eq).toHaveBeenCalledWith(
         "stripe_customer_id",
@@ -248,7 +260,7 @@ describe("POST /api/webhooks/stripe", () => {
         makeEvent("customer.subscription.updated", {
           customer: "cus_abc123",
           status: "trialing",
-          current_period_end: 1735689600,
+          current_period_start: 1735689600,
         })
       );
 
@@ -267,7 +279,7 @@ describe("POST /api/webhooks/stripe", () => {
         makeEvent("customer.subscription.updated", {
           customer: "cus_abc123",
           status: "past_due",
-          current_period_end: 1735689600,
+          current_period_start: 1735689600,
         })
       );
 
@@ -286,7 +298,7 @@ describe("POST /api/webhooks/stripe", () => {
         makeEvent("customer.subscription.updated", {
           customer: "cus_abc123",
           status: "unpaid",
-          current_period_end: 1735689600,
+          current_period_start: 1735689600,
         })
       );
 
@@ -300,7 +312,7 @@ describe("POST /api/webhooks/stripe", () => {
       );
     });
 
-    it("handles missing current_period_end gracefully", async () => {
+    it("handles missing current_period_start gracefully", async () => {
       mockStripe.webhooks.constructEvent.mockReturnValueOnce(
         makeEvent("customer.subscription.updated", {
           customer: "cus_abc123",
@@ -313,7 +325,7 @@ describe("POST /api/webhooks/stripe", () => {
 
       expect(mockAdminClient._chain.update).toHaveBeenCalledWith({
         subscription_status: "active",
-        current_period_end: null,
+        current_period_start: null,
       });
     });
   });
@@ -333,11 +345,11 @@ describe("POST /api/webhooks/stripe", () => {
 
       expect(response.status).toBe(200);
       expect(body.received).toBe(true);
-      expect(mockAdminClient.from).toHaveBeenCalledWith("users");
+      expect(mockAdminClient.from).toHaveBeenCalledWith("profiles");
       expect(mockAdminClient._chain.update).toHaveBeenCalledWith({
         subscription_tier: "free",
         subscription_status: "canceled",
-        current_period_end: null,
+        current_period_start: null,
       });
       expect(mockAdminClient._chain.eq).toHaveBeenCalledWith(
         "stripe_customer_id",
