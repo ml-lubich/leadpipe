@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
   // Check subscription tier campaign limits
   const { data: profile } = await supabase
-    .from("users")
+    .from("profiles")
     .select("subscription_tier")
     .eq("id", user.id)
     .single();

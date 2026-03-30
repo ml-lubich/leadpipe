@@ -54,7 +54,7 @@ export default function SettingsClient({
   };
 
   const leadsLimit = limits.leads_per_month;
-  const leadsUsed = profile.leads_used_this_month;
+  const leadsUsed = profile.scrape_count_this_month;
   const usagePercent =
     leadsLimit > 0 ? Math.min(100, Math.round((leadsUsed / leadsLimit) * 100)) : 0;
 

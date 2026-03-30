@@ -11,7 +11,7 @@ export default async function SettingsPage() {
   if (!authUser) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("users")
+    .from("profiles")
     .select("*")
     .eq("id", authUser.id)
     .single();
@@ -24,8 +24,8 @@ export default async function SettingsPage() {
     stripe_customer_id: null,
     subscription_tier: "free" as const,
     subscription_status: "active" as const,
-    leads_used_this_month: 0,
-    current_period_end: null,
+    scrape_count_this_month: 0,
+    current_period_start: null,
     created_at: authUser.created_at,
     updated_at: authUser.created_at,
   };

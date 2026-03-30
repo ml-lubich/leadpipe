@@ -4,7 +4,7 @@
 -- ============================================================
 -- Enable RLS on all tables
 -- ============================================================
-alter table public.users enable row level security;
+alter table public.profiles enable row level security;
 alter table public.campaigns enable row level security;
 alter table public.leads enable row level security;
 alter table public.templates enable row level security;
@@ -14,11 +14,11 @@ alter table public.outreach enable row level security;
 -- USERS
 -- ============================================================
 create policy "Users can read own profile"
-  on public.users for select
+  on public.profiles for select
   using (auth.uid() = id);
 
 create policy "Users can update own profile"
-  on public.users for update
+  on public.profiles for update
   using (auth.uid() = id);
 
 -- ============================================================

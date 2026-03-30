@@ -32,15 +32,15 @@ export async function POST(request: Request) {
 
   // Check subscription tier limits
   const { data: profile } = await supabase
-    .from("users")
-    .select("subscription_tier, leads_used_this_month")
+    .from("profiles")
+    .select("subscription_tier, scrape_count_this_month")
     .eq("id", user.id)
     .single();
 
   if (profile) {
     const tier = (profile.subscription_tier || "free") as keyof typeof TIER_LIMITS;
     const limits = TIER_LIMITS[tier];
-    if (limits.leads_per_month > 0 && profile.leads_used_this_month >= limits.leads_per_month) {
+    if (limits.leads_per_month > 0 && profile.scrape_count_this_month >= limits.leads_per_month) {
       return Response.json(
         { error: `Lead limit reached (${limits.leads_per_month}/month). Upgrade your plan for more leads.` },
         { status: 403 }

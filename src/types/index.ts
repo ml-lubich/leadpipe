@@ -6,8 +6,8 @@ export interface User {
   stripe_customer_id: string | null;
   subscription_tier: "free" | "pro" | "agency";
   subscription_status: "active" | "canceled" | "past_due" | "trialing";
-  leads_used_this_month: number;
-  current_period_end: string | null;
+  scrape_count_this_month: number;
+  current_period_start: string | null;
   created_at: string;
   updated_at: string;
 }

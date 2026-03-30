@@ -116,7 +116,7 @@ describe("POST /api/campaigns", () => {
     countChain.eq = vi.fn().mockResolvedValue({ count: 1, data: null, error: null });
 
     mockClient.from
-      .mockReturnValueOnce(profileChain)  // from("users")
+      .mockReturnValueOnce(profileChain)  // from("profiles")
       .mockReturnValueOnce(countChain);   // from("campaigns") count query
 
     const request = new Request("http://localhost/api/campaigns", {

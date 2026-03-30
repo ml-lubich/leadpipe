@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       const tier = session.metadata?.tier;
       if (userId && tier) {
         await supabase
-          .from("users")
+          .from("profiles")
           .update({
             subscription_tier: tier,
             subscription_status: "active",
@@ -76,17 +76,17 @@ export async function POST(request: Request) {
             ? "past_due"
             : "canceled";
 
-      const periodEnd = subscription.current_period_end;
+      const periodEnd = subscription.current_period_start;
       const periodEndDate =
         typeof periodEnd === "number"
           ? new Date(periodEnd * 1000).toISOString()
           : null;
 
       await supabase
-        .from("users")
+        .from("profiles")
         .update({
           subscription_status: mappedStatus,
-          current_period_end: periodEndDate,
+          current_period_start: periodEndDate,
         })
         .eq("stripe_customer_id", customerId);
       break;
@@ -97,11 +97,11 @@ export async function POST(request: Request) {
       const customerId = String(subscription.customer ?? "");
 
       await supabase
-        .from("users")
+        .from("profiles")
         .update({
           subscription_tier: "free",
           subscription_status: "canceled",
-          current_period_end: null,
+          current_period_start: null,
         })
         .eq("stripe_customer_id", customerId);
       break;

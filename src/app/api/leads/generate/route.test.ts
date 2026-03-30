@@ -86,7 +86,7 @@ describe("POST /api/leads/generate", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { subscription_tier: "free", leads_used_this_month: 25 },
+        data: { subscription_tier: "free", scrape_count_this_month: 25 },
         error: null,
       }),
     };
@@ -110,7 +110,7 @@ describe("POST /api/leads/generate", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { subscription_tier: "free", leads_used_this_month: 0 },
+        data: { subscription_tier: "free", scrape_count_this_month: 0 },
         error: null,
       }),
     };
@@ -147,7 +147,7 @@ describe("POST /api/leads/generate", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { subscription_tier: "free", leads_used_this_month: 0 },
+        data: { subscription_tier: "free", scrape_count_this_month: 0 },
         error: null,
       }),
     };

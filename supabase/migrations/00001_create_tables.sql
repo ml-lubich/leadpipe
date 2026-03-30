@@ -4,7 +4,7 @@
 -- ============================================================
 -- USERS (extends Supabase auth.users)
 -- ============================================================
-create table if not exists public.users (
+create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text,
@@ -12,8 +12,8 @@ create table if not exists public.users (
   stripe_customer_id text,
   subscription_tier text not null default 'free' check (subscription_tier in ('free', 'pro', 'agency')),
   subscription_status text not null default 'active' check (subscription_status in ('active', 'canceled', 'past_due', 'trialing')),
-  leads_used_this_month int not null default 0,
-  current_period_end timestamptz,
+  scrape_count_this_month int not null default 0,
+  current_period_start timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -23,7 +23,7 @@ create table if not exists public.users (
 -- ============================================================
 create table if not exists public.campaigns (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
   trade_type text not null,
   location text not null,
@@ -64,7 +64,7 @@ create index if not exists leads_campaign_id_idx on public.leads(campaign_id);
 -- ============================================================
 create table if not exists public.templates (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
   trade_type text not null default 'General',
   subject_template text not null,
@@ -105,8 +105,8 @@ begin
 end;
 $$ language plpgsql;
 
-DROP TRIGGER IF EXISTS users_updated_at ON public.users;
-create trigger users_updated_at before update on public.users
+DROP TRIGGER IF EXISTS profiles_updated_at ON public.profiles;
+create trigger profiles_updated_at before update on public.profiles
   for each row execute function public.handle_updated_at();
 
 DROP TRIGGER IF EXISTS campaigns_updated_at ON public.campaigns;
@@ -119,7 +119,7 @@ create trigger campaigns_updated_at before update on public.campaigns
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.users (id, email, full_name, avatar_url)
+  insert into public.profiles (id, email, full_name, avatar_url)
   values (
     new.id,
     new.email,
