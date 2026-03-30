@@ -23,29 +23,7 @@ import {
   LEAD_STATUSES,
   LEAD_STATUS_LABELS,
 } from "@/types";
-
-function getGapsList(gaps: Lead["digital_gaps"]): string[] {
-  if (!gaps || typeof gaps !== "object") return [];
-  const labels: Record<string, string> = {
-    no_website: "No website",
-    no_online_booking: "No online booking system",
-    no_reviews_page: "No reviews/testimonials page",
-    poor_mobile: "Poor mobile experience",
-    no_seo: "Missing basic SEO",
-    no_social_media: "No social media presence",
-    no_ssl: "No SSL certificate",
-    outdated_design: "Outdated website design",
-  };
-  return Object.entries(gaps)
-    .filter(([, v]) => v === true)
-    .map(([k]) => labels[k] || k);
-}
-
-function getScoreColor(score: number) {
-  if (score >= 7) return "text-green-400";
-  if (score >= 4) return "text-yellow-400";
-  return "text-red-400";
-}
+import { getGapsList, getScoreTextColor } from "@/lib/lead-utils";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -71,7 +49,7 @@ export default function LeadDetail({
   const [saving, setSaving] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
 
-  const gaps = getGapsList(lead.digital_gaps);
+  const gaps = getGapsList(lead.digital_gaps, "long");
 
   const handleStatusChange = async (newStatus: string) => {
     const s = newStatus as LeadStatus;
@@ -141,7 +119,7 @@ export default function LeadDetail({
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Website Score</p>
-            <p className={`text-4xl font-bold ${getScoreColor(lead.website_score)}`}>
+            <p className={`text-4xl font-bold ${getScoreTextColor(lead.website_score)}`}>
               {lead.website_score}/10
             </p>
           </CardContent>

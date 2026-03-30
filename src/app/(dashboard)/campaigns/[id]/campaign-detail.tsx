@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,73 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Campaign, Lead } from "@/types";
+import {
+  buildConversionFunnel,
+  calculateCampaignHealth,
+  FunnelStage,
+} from "@/lib/lead-utils";
 
 const campaignStatusColors: Record<Campaign["status"], string> = {
   active: "status-contacted",
   paused: "status-new",
   completed: "status-closed",
 };
+
+const STAGE_COLORS = [
+  "bg-blue-500",
+  "bg-cyan-500",
+  "bg-emerald-500",
+  "bg-yellow-500",
+  "bg-orange-500",
+  "bg-green-500",
+];
+
+function getHealthLabel(score: number): { text: string; color: string } {
+  if (score >= 70) return { text: "Excellent", color: "text-green-400" };
+  if (score >= 40) return { text: "Good", color: "text-yellow-400" };
+  if (score >= 15) return { text: "Needs Work", color: "text-orange-400" };
+  return { text: "Just Started", color: "text-muted-foreground" };
+}
+
+function ConversionFunnel({ stages }: { stages: FunnelStage[] }) {
+  if (stages.length === 0) return null;
+
+  const maxCount = stages[0].count;
+
+  return (
+    <div className="space-y-2">
+      {stages.map((stage, i) => {
+        const barWidth = maxCount > 0 ? Math.max((stage.count / maxCount) * 100, 4) : 0;
+        return (
+          <div key={stage.status} className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{stage.label}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {stage.count}
+                </span>
+              </div>
+              {stage.conversionFromPrevious !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {stages[i - 1].label} &rarr; {stage.label}:{" "}
+                  <span className="font-medium text-foreground">
+                    {stage.conversionFromPrevious}%
+                  </span>
+                </span>
+              )}
+            </div>
+            <div className="h-6 bg-muted/30 rounded-md overflow-hidden">
+              <div
+                className={`h-full rounded-md ${STAGE_COLORS[i]} transition-all duration-500`}
+                style={{ width: `${barWidth}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function CampaignDetail({
   campaign,
@@ -46,6 +107,10 @@ export default function CampaignDetail({
     meeting: leads.filter((l) => l.status === "meeting").length,
     closed: leads.filter((l) => l.status === "closed").length,
   };
+
+  const funnelStages = useMemo(() => buildConversionFunnel(leads), [leads]);
+  const healthScore = useMemo(() => calculateCampaignHealth(leads), [leads]);
+  const healthLabel = getHealthLabel(healthScore);
 
   const deleteCampaign = async () => {
     setActionLoading(true);
@@ -111,6 +176,40 @@ export default function CampaignDetail({
           </Card>
         ))}
       </div>
+
+      {/* Campaign Analytics */}
+      {leads.length > 0 && (
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="md:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Conversion Funnel</CardTitle>
+              <CardDescription>
+                Cumulative leads at or beyond each pipeline stage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ConversionFunnel stages={funnelStages} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Campaign Health</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center gap-2">
+              <p className={`text-5xl font-bold tabular-nums ${healthLabel.color}`}>
+                {healthScore}
+              </p>
+              <p className={`text-sm font-medium ${healthLabel.color}`}>
+                {healthLabel.text}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Based on how far leads have progressed through the pipeline
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Leads list */}
       {leads.length === 0 ? (

@@ -22,29 +22,7 @@ import {
   LEAD_STATUS_LABELS,
   TRADES,
 } from "@/types";
-
-function getScoreColor(score: number) {
-  if (score >= 7) return "score-high";
-  if (score >= 4) return "score-medium";
-  return "score-low";
-}
-
-function getGapsList(gaps: Lead["digital_gaps"]): string[] {
-  if (!gaps || typeof gaps !== "object") return [];
-  const labels: Record<string, string> = {
-    no_website: "No website",
-    no_online_booking: "No booking",
-    no_reviews_page: "No reviews",
-    poor_mobile: "Poor mobile",
-    no_seo: "No SEO",
-    no_social_media: "No social",
-    no_ssl: "No SSL",
-    outdated_design: "Outdated design",
-  };
-  return Object.entries(gaps)
-    .filter(([, v]) => v === true)
-    .map(([k]) => labels[k] || k);
-}
+import { getScoreColor, getGapsList } from "@/lib/lead-utils";
 
 function LeadCard({ lead }: { lead: Lead }) {
   const gaps = getGapsList(lead.digital_gaps);
