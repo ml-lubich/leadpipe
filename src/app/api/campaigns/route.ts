@@ -1,3 +1,4 @@
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { TIER_LIMITS } from "@/types";
 
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = checkRateLimit(`campaigns:${user.id}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfterMs);
 
   let body: { trade_type?: string; location?: string };
   try {

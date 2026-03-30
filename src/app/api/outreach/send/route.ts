@@ -1,3 +1,4 @@
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = checkRateLimit(`outreach-send:${user.id}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfterMs);
 
   let body: { outreach_ids?: string[] };
   try {

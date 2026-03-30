@@ -1,3 +1,4 @@
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { TIER_LIMITS } from "@/types";
 import OpenAI from "openai";
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = checkRateLimit(`leads-generate:${user.id}`, { windowMs: 60_000, maxRequests: 5 });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfterMs);
 
   let body: { campaign_id?: string };
   try {

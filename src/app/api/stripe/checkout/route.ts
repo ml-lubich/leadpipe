@@ -1,3 +1,4 @@
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, PRICE_IDS } from "@/lib/stripe";
 
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimit = checkRateLimit(`stripe-checkout:${user.id}`, { windowMs: 60_000, maxRequests: 3 });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfterMs);
 
   let body: { tier?: string };
   try {
