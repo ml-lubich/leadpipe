@@ -128,3 +128,64 @@
     @apply font-sans;
   }
 }
+
+/* Hero animated gradient background */
+.hero-gradient {
+  position: relative;
+}
+
+.hero-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      oklch(0.488 0.243 264.376 / 0.15),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 50%,
+      oklch(0.6 0.2 280 / 0.08),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 20% 80%,
+      oklch(0.5 0.15 250 / 0.08),
+      transparent
+    );
+  animation: hero-gradient-shift 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes hero-gradient-shift {
+  0% {
+    opacity: 0.6;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-2%);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1) translateY(1%);
+  }
+}
+
+.dark .hero-gradient::before {
+  background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      oklch(0.488 0.243 264.376 / 0.2),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 50%,
+      oklch(0.5 0.2 280 / 0.1),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 20% 80%,
+      oklch(0.4 0.15 250 / 0.1),
+      transparent
+    );
+}
