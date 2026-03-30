@@ -50,6 +50,7 @@ export interface Lead {
   google_rating: number;
   review_count: number;
   website_score: number;
+  lead_score: number;
   digital_gaps: DigitalGaps;
   status: LeadStatus;
   notes: string;
@@ -92,15 +93,6 @@ export interface Template {
   created_at: string;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export const TRADES = [
   "HVAC",
   "Plumbing",
@@ -115,9 +107,25 @@ export type Trade = (typeof TRADES)[number];
 export const TIER_LIMITS = {
   free: { leads_per_month: 25, campaigns: 1 },
   starter: { leads_per_month: 100, campaigns: 5 },
-  pro: { leads_per_month: 500, campaigns: 0 }, // 0 = unlimited
-  enterprise: { leads_per_month: 0, campaigns: 0 }, // 0 = unlimited
+  pro: { leads_per_month: 500, campaigns: 0 },
+  enterprise: { leads_per_month: 0, campaigns: 0 },
 } as const;
+
+export type SubscriptionTier = keyof typeof TIER_LIMITS;
+
+export interface User {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  stripe_customer_id: string | null;
+  subscription_tier: SubscriptionTier;
+  subscription_status: string;
+  scrape_count_this_month: number;
+  current_period_start: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export const TEMPLATE_VARIABLES = [
   "{{business_name}}",

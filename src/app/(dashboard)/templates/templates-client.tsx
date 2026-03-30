@@ -113,9 +113,9 @@ export default function TemplatesClient({
   const handleStartEdit = (t: Template) => {
     setEditingId(t.id);
     setEditName(t.name);
-    setEditSubject(t.subject || (t as Record<string, string>).subject_template || "");
-    setEditBody(t.body || (t as Record<string, string>).body_template || "");
-    setEditTrade(t.trade || (t as Record<string, string>).trade_type || "General");
+    setEditSubject(t.subject || (t as unknown as Record<string, string>).subject_template || "");
+    setEditBody(t.body || (t as unknown as Record<string, string>).body_template || "");
+    setEditTrade(t.trade || (t as unknown as Record<string, string>).trade_type || "General");
     setEditError("");
   };
 
@@ -165,11 +165,11 @@ export default function TemplatesClient({
   };
 
   const getSubject = (t: Template) =>
-    t.subject || (t as Record<string, string>).subject_template || "";
+    t.subject || (t as unknown as Record<string, string>).subject_template || "";
   const getBody = (t: Template) =>
-    t.body || (t as Record<string, string>).body_template || "";
+    t.body || (t as unknown as Record<string, string>).body_template || "";
   const getTrade = (t: Template) =>
-    t.trade || (t as Record<string, string>).trade_type || "General";
+    t.trade || (t as unknown as Record<string, string>).trade_type || "General";
 
   return (
     <div className="space-y-6">
@@ -204,7 +204,7 @@ export default function TemplatesClient({
                 </div>
                 <div className="space-y-2">
                   <Label>Trade</Label>
-                  <Select value={newTrade} onValueChange={setNewTrade}>
+                  <Select value={newTrade} onValueChange={(v) => v && setNewTrade(v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -282,7 +282,7 @@ export default function TemplatesClient({
                     </div>
                     <div className="space-y-2">
                       <Label>Trade</Label>
-                      <Select value={editTrade} onValueChange={setEditTrade}>
+                      <Select value={editTrade} onValueChange={(v) => v && setEditTrade(v)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
