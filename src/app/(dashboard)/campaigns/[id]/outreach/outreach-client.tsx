@@ -21,6 +21,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Campaign, Lead, Template } from "@/types";
 
+const MAX_EMAIL_CHARS = 5000;
+
 function personalizeTemplate(
   template: string,
   lead: Lead,
@@ -32,6 +34,17 @@ function personalizeTemplate(
     .replace(/\{\{trade_type\}\}/g, tradeType.toLowerCase())
     .replace(/\{\{review_count\}\}/g, String(lead.review_count))
     .replace(/\{\{google_rating\}\}/g, String(lead.google_rating));
+}
+
+function CharCount({ current, max }: { current: number; max: number }) {
+  const isOver = current > max;
+  return (
+    <p
+      className={`text-xs text-right ${isOver ? "text-destructive" : "text-muted-foreground"}`}
+    >
+      {current} / {max}
+    </p>
+  );
 }
 
 export default function OutreachClient({
@@ -50,8 +63,14 @@ export default function OutreachClient({
   const [generatedEmails, setGeneratedEmails] = useState<
     { leadId: string; subject: string; body: string }[]
   >([]);
+  const [editedBodies, setEditedBodies] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [previewEmail, setPreviewEmail] = useState<{
+    leadId: string;
+    subject: string;
+    body: string;
+  } | null>(null);
 
   const template = templates.find((t) => t.id === selectedTemplate);
   const selectedLead = hotLeads.find((l) => l.id === selectedLeadId);
@@ -105,9 +124,9 @@ export default function OutreachClient({
           })
         )
       );
+      setEditedBodies({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate");
-      // Fallback to client-side template personalization
       const emails = hotLeads.slice(0, 10).map((lead) => ({
         leadId: lead.id,
         subject: personalizeTemplate(
@@ -122,10 +141,14 @@ export default function OutreachClient({
         ),
       }));
       setGeneratedEmails(emails);
+      setEditedBodies({});
     } finally {
       setGenerating(false);
     }
   };
+
+  const getEmailBody = (email: { leadId: string; body: string }) =>
+    editedBodies[email.leadId] ?? email.body;
 
   if (templates.length === 0) {
     return (
@@ -224,9 +247,10 @@ export default function OutreachClient({
                 <p className="text-sm font-medium text-muted-foreground mb-2">
                   Body
                 </p>
-                <div className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-md">
+                <div className="whitespace-pre-wrap text-sm bg-muted/50 dark:bg-muted/20 p-4 rounded-md border dark:border-border">
                   {previewBody}
                 </div>
+                <CharCount current={previewBody.length} max={MAX_EMAIL_CHARS} />
               </div>
             </CardContent>
           </Card>
@@ -245,6 +269,20 @@ export default function OutreachClient({
                 ? "No leads to email"
                 : `Generate Emails for Top ${Math.min(10, hotLeads.length)} Leads`}
           </Button>
+
+          {generating && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <div className="animate-spin mx-auto mb-3 h-8 w-8 rounded-full border-4 border-muted border-t-primary" />
+                <p className="text-sm text-muted-foreground">
+                  AI is generating personalized emails...
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This may take a few seconds
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Generated emails list */}
@@ -256,7 +294,7 @@ export default function OutreachClient({
             )}
           </h2>
 
-          {generatedEmails.length === 0 ? (
+          {generatedEmails.length === 0 && !generating ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <p className="text-lg mb-2">No emails generated yet</p>
@@ -269,6 +307,7 @@ export default function OutreachClient({
           ) : (
             generatedEmails.map((email) => {
               const lead = hotLeads.find((l) => l.id === email.leadId);
+              const body = getEmailBody(email);
               return (
                 <Card key={email.leadId}>
                   <CardHeader className="pb-3">
@@ -276,7 +315,26 @@ export default function OutreachClient({
                       <CardTitle className="text-base">
                         {lead?.business_name}
                       </CardTitle>
-                      <Badge variant="outline">Draft</Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPreviewEmail({
+                              ...email,
+                              body,
+                            })
+                          }
+                        >
+                          Preview
+                        </Button>
+                        <Badge
+                          variant="outline"
+                          className="dark:border-border"
+                        >
+                          Draft
+                        </Badge>
+                      </div>
                     </div>
                     <CardDescription className="text-xs">
                       To: {lead?.email}
@@ -286,10 +344,17 @@ export default function OutreachClient({
                     <p className="text-sm font-medium">{email.subject}</p>
                     <Separator />
                     <Textarea
-                      defaultValue={email.body}
+                      value={body}
+                      onChange={(e) =>
+                        setEditedBodies((prev) => ({
+                          ...prev,
+                          [email.leadId]: e.target.value,
+                        }))
+                      }
                       rows={6}
                       className="text-sm"
                     />
+                    <CharCount current={body.length} max={MAX_EMAIL_CHARS} />
                   </CardContent>
                 </Card>
               );
@@ -297,6 +362,47 @@ export default function OutreachClient({
           )}
         </div>
       </div>
+
+      {/* Preview modal */}
+      {previewEmail && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setPreviewEmail(null)}
+        >
+          <div
+            className="bg-background border rounded-lg shadow-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Email Preview</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPreviewEmail(null)}
+                >
+                  Close
+                </Button>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Subject
+                </p>
+                <p className="font-medium">{previewEmail.subject}</p>
+              </div>
+              <Separator />
+              <div className="whitespace-pre-wrap text-sm bg-muted/50 dark:bg-muted/20 p-4 rounded-md border dark:border-border">
+                {previewEmail.body}
+              </div>
+              <CharCount
+                current={previewEmail.body.length}
+                max={MAX_EMAIL_CHARS}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

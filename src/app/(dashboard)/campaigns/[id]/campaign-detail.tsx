@@ -23,9 +23,11 @@ import {
 import { Campaign, Lead } from "@/types";
 
 function getScoreColor(score: number) {
-  if (score >= 70) return "bg-green-100 text-green-800";
-  if (score >= 50) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
+  if (score >= 70)
+    return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+  if (score >= 50)
+    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+  return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
 }
 
 function getScoreLabel(score: number) {
@@ -35,13 +37,77 @@ function getScoreLabel(score: number) {
 }
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  contacted: "bg-yellow-100 text-yellow-800",
-  replied: "bg-green-100 text-green-800",
-  converted: "bg-purple-100 text-purple-800",
+  new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  contacted:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  replied:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  converted:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
 };
 
 type SortKey = "lead_score" | "review_count" | "business_name";
+
+function StatusSummary({ leads }: { leads: Lead[] }) {
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {
+      new: 0,
+      contacted: 0,
+      replied: 0,
+      converted: 0,
+    };
+    for (const l of leads) {
+      map[l.status] = (map[l.status] || 0) + 1;
+    }
+    return map;
+  }, [leads]);
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(counts).map(([status, count]) => (
+        <Badge key={status} className={statusColors[status]}>
+          {status}: {count}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function LeadCard({ lead }: { lead: Lead }) {
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="font-medium">{lead.business_name}</p>
+          <Badge className={getScoreColor(lead.lead_score)}>
+            {lead.lead_score} — {getScoreLabel(lead.lead_score)}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">{lead.owner_name}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <span>{lead.phone}</span>
+          <span className="text-muted-foreground">{lead.email}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          {lead.has_website ? (
+            <Badge variant="outline" className="text-xs">
+              Has site
+            </Badge>
+          ) : (
+            <Badge variant="destructive" className="text-xs">
+              No site
+            </Badge>
+          )}
+          <span className="font-medium">{lead.google_rating} ★</span>
+          <span className="text-muted-foreground">
+            ({lead.review_count} reviews)
+          </span>
+        </div>
+        <Badge className={statusColors[lead.status]}>{lead.status}</Badge>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function CampaignDetail({
   campaign,
@@ -53,9 +119,11 @@ export default function CampaignDetail({
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("lead_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [generatingLeads, setGeneratingLeads] = useState(false);
+  const [generateError, setGenerateError] = useState("");
 
   const filteredLeads = useMemo(() => {
-    let leads = allLeads.filter(
+    const leads = allLeads.filter(
       (l) =>
         l.business_name.toLowerCase().includes(search.toLowerCase()) ||
         l.owner_name.toLowerCase().includes(search.toLowerCase())
@@ -86,7 +154,36 @@ export default function CampaignDetail({
 
   const sortIndicator = (key: SortKey) => {
     if (sortBy !== key) return "";
-    return sortDir === "asc" ? " \u2191" : " \u2193";
+    return sortDir === "asc" ? " ↑" : " ↓";
+  };
+
+  const handleGenerateLeads = async () => {
+    setGeneratingLeads(true);
+    setGenerateError("");
+    try {
+      const res = await fetch("/api/leads/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id: campaign.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate leads");
+      }
+      window.location.reload();
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error ? err.message : "Failed to generate leads"
+      );
+    } finally {
+      setGeneratingLeads(false);
+    }
+  };
+
+  const scoreBreakdownColors = {
+    Hot: "text-green-600 dark:text-green-400",
+    Warm: "text-yellow-600 dark:text-yellow-400",
+    Cold: "text-red-600 dark:text-red-400",
   };
 
   return (
@@ -99,13 +196,27 @@ export default function CampaignDetail({
             {campaign.trade_type} &middot; {campaign.location} &middot;{" "}
             {allLeads.length} leads found
           </p>
+          <div className="mt-2">
+            <StatusSummary leads={allLeads} />
+          </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateLeads}
+            disabled={generatingLeads}
+          >
+            {generatingLeads ? "Generating..." : "Generate More Leads"}
+          </Button>
           <Link href={`/campaigns/${campaign.id}/outreach`}>
             <Button>Generate Outreach</Button>
           </Link>
         </div>
       </div>
+
+      {generateError && (
+        <p className="text-sm text-destructive">{generateError}</p>
+      )}
 
       {/* Score breakdown */}
       <div className="grid grid-cols-3 gap-4">
@@ -113,18 +224,17 @@ export default function CampaignDetail({
           const count = allLeads.filter(
             (l) => getScoreLabel(l.lead_score) === label
           ).length;
-          const colors = {
-            Hot: "text-green-600",
-            Warm: "text-yellow-600",
-            Cold: "text-red-600",
-          };
           return (
             <Card key={label}>
               <CardHeader className="pb-2">
                 <CardDescription>{label} Leads</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className={`text-3xl font-bold ${colors[label]}`}>{count}</p>
+                <p
+                  className={`text-3xl font-bold ${scoreBreakdownColors[label]}`}
+                >
+                  {count}
+                </p>
               </CardContent>
             </Card>
           );
@@ -134,11 +244,14 @@ export default function CampaignDetail({
       {allLeads.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <p className="text-lg mb-2">No leads yet</p>
-            <p className="text-sm">
-              Use the API to generate leads for this campaign, or wait for lead
-              discovery to complete.
+            <div className="mx-auto mb-4 text-4xl">📋</div>
+            <p className="text-lg font-medium mb-2">No leads yet</p>
+            <p className="text-sm mb-4">
+              Generate leads for this campaign to get started with outreach.
             </p>
+            <Button onClick={handleGenerateLeads} disabled={generatingLeads}>
+              {generatingLeads ? "Generating..." : "Generate Leads"}
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -153,8 +266,8 @@ export default function CampaignDetail({
             />
           </div>
 
-          {/* Lead table */}
-          <Card>
+          {/* Lead table — desktop */}
+          <Card className="hidden md:block">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -236,6 +349,13 @@ export default function CampaignDetail({
               </Table>
             </CardContent>
           </Card>
+
+          {/* Lead cards — mobile */}
+          <div className="md:hidden space-y-3">
+            {filteredLeads.map((lead) => (
+              <LeadCard key={lead.id} lead={lead} />
+            ))}
+          </div>
         </>
       )}
 
@@ -261,19 +381,21 @@ export default function CampaignDetail({
               <p className="font-medium text-foreground mb-1">Score Ranges</p>
               <ul className="space-y-1">
                 <li>
-                  <Badge className="bg-green-100 text-green-800 mr-2">
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 mr-2">
                     70-100
                   </Badge>{" "}
                   Hot — likely to convert
                 </li>
                 <li>
-                  <Badge className="bg-yellow-100 text-yellow-800 mr-2">
+                  <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 mr-2">
                     50-69
                   </Badge>{" "}
                   Warm — worth reaching out
                 </li>
                 <li>
-                  <Badge className="bg-red-100 text-red-800 mr-2">20-49</Badge>{" "}
+                  <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 mr-2">
+                    20-49
+                  </Badge>{" "}
                   Cold — lower priority
                 </li>
               </ul>
