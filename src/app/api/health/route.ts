@@ -51,8 +51,8 @@ async function checkSupabaseConnection(): Promise<HealthCheck> {
     const supabase = createClient(url, key);
 
     const result = await Promise.race([
-      supabase.from("_health_check_ping").select("count").limit(0),
-      new Promise<{ error: Error }>((_, reject) =>
+      supabase.from("_health_check_ping").select("count").limit(0).then((r) => r),
+      new Promise<never>((_, reject) =>
         setTimeout(
           () => reject(new Error("Supabase connection timed out")),
           SUPABASE_TIMEOUT_MS
@@ -63,9 +63,8 @@ async function checkSupabaseConnection(): Promise<HealthCheck> {
     const duration_ms = Date.now() - start;
 
     if (result && "error" in result && result.error) {
-      const errorMessage = String(
-        (result.error as Record<string, unknown>).message ?? result.error
-      );
+      const err = result.error as { message?: string };
+      const errorMessage = String(err.message ?? result.error);
       const isTableNotFound =
         errorMessage.includes("does not exist") ||
         errorMessage.includes("relation");

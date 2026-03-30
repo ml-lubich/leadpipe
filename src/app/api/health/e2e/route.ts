@@ -24,11 +24,11 @@ function getSupabaseClient() {
 }
 
 async function withTimeout<T>(
-  promise: Promise<T>,
+  promiseLike: PromiseLike<T>,
   label: string
 ): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(promiseLike),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`${label} timed out`)), TIMEOUT_MS)
     ),
