@@ -303,7 +303,7 @@ export default function PipelineDashboard({
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
         />
-        <Select value={tradeFilter} onValueChange={setTradeFilter}>
+        <Select value={tradeFilter} onValueChange={(v) => setTradeFilter(v ?? "all")}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All trades" />
           </SelectTrigger>
@@ -316,7 +316,7 @@ export default function PipelineDashboard({
             ))}
           </SelectContent>
         </Select>
-        <Select value={cityFilter} onValueChange={setCityFilter}>
+        <Select value={cityFilter} onValueChange={(v) => setCityFilter(v ?? "all")}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All cities" />
           </SelectTrigger>

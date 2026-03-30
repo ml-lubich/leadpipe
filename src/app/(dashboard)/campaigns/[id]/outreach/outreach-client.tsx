@@ -82,20 +82,20 @@ export default function OutreachClient({
   const previewSubject =
     selectedLead && template
       ? personalizeTemplate(
-          template.subject_template,
+          template.subject,
           selectedLead,
-          campaign.trade_type
+          campaign.trade
         )
-      : template?.subject_template ?? "";
+      : template?.subject ?? "";
 
   const previewBody =
     selectedLead && template
       ? personalizeTemplate(
-          template.body_template,
+          template.body,
           selectedLead,
-          campaign.trade_type
+          campaign.trade
         )
-      : template?.body_template ?? "";
+      : template?.body ?? "";
 
   const handleGenerateAll = async () => {
     if (!template) return;
@@ -137,14 +137,14 @@ export default function OutreachClient({
         id: "",
         leadId: lead.id,
         subject: personalizeTemplate(
-          template.subject_template,
+          template.subject,
           lead,
-          campaign.trade_type
+          campaign.trade
         ),
         body: personalizeTemplate(
-          template.body_template,
+          template.body,
           lead,
-          campaign.trade_type
+          campaign.trade
         ),
       }));
       setGeneratedEmails(emails);
@@ -278,7 +278,7 @@ export default function OutreachClient({
                     <SelectContent>
                       {hotLeads.map((l) => (
                         <SelectItem key={l.id} value={l.id}>
-                          {l.business_name} (Score: {l.lead_score})
+                          {l.business_name} (Score: {l.website_score})
                         </SelectItem>
                       ))}
                     </SelectContent>

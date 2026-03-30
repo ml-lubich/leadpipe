@@ -121,7 +121,7 @@ export default function LeadDetail({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={status} onValueChange={handleStatusChange}>
+          <Select value={status} onValueChange={(v) => { if (v) handleStatusChange(v); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
