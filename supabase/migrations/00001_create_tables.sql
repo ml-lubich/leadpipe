@@ -105,9 +105,11 @@ begin
 end;
 $$ language plpgsql;
 
+DROP TRIGGER IF EXISTS users_updated_at ON public.users;
 create trigger users_updated_at before update on public.users
   for each row execute function public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS campaigns_updated_at ON public.campaigns;
 create trigger campaigns_updated_at before update on public.campaigns
   for each row execute function public.handle_updated_at();
 
@@ -128,6 +130,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
