@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       const userId = session.metadata?.supabase_user_id;
       const tier = session.metadata?.tier;
       if (userId && tier) {
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
             subscription_tier: tier,
@@ -60,6 +60,13 @@ export async function POST(request: Request) {
             stripe_customer_id: session.customer as string,
           })
           .eq("id", userId);
+        if (error) {
+          console.error("Failed to update profile on checkout:", error);
+          return Response.json(
+            { error: "Database update failed" },
+            { status: 500 }
+          );
+        }
       }
       break;
     }
@@ -82,13 +89,20 @@ export async function POST(request: Request) {
           ? new Date(periodEnd * 1000).toISOString()
           : null;
 
-      await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({
           subscription_status: mappedStatus,
           current_period_start: periodEndDate,
         })
         .eq("stripe_customer_id", customerId);
+      if (error) {
+        console.error("Failed to update subscription status:", error);
+        return Response.json(
+          { error: "Database update failed" },
+          { status: 500 }
+        );
+      }
       break;
     }
 
@@ -96,7 +110,7 @@ export async function POST(request: Request) {
       const subscription = event.data.object as unknown as Record<string, unknown>;
       const customerId = String(subscription.customer ?? "");
 
-      await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({
           subscription_tier: "free",
@@ -104,6 +118,13 @@ export async function POST(request: Request) {
           current_period_start: null,
         })
         .eq("stripe_customer_id", customerId);
+      if (error) {
+        console.error("Failed to update profile on subscription deletion:", error);
+        return Response.json(
+          { error: "Database update failed" },
+          { status: 500 }
+        );
+      }
       break;
     }
   }

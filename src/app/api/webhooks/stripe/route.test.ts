@@ -12,7 +12,7 @@ const { mockStripe, mockAdminClient } = vi.hoisted(() => {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
-  chain.eq = vi.fn().mockReturnValue(chain);
+  chain.eq = vi.fn().mockResolvedValue({ error: null });
 
   const mockAdminClient = {
     from: vi.fn().mockReturnValue(chain),
@@ -59,7 +59,7 @@ beforeEach(() => {
   // Reset chain defaults
   mockAdminClient._chain.select.mockReturnValue(mockAdminClient._chain);
   mockAdminClient._chain.update.mockReturnValue(mockAdminClient._chain);
-  mockAdminClient._chain.eq.mockReturnValue(mockAdminClient._chain);
+  mockAdminClient._chain.eq.mockResolvedValue({ error: null });
   mockAdminClient.from.mockReturnValue(mockAdminClient._chain);
 
   // Default env vars
@@ -355,6 +355,67 @@ describe("POST /api/webhooks/stripe", () => {
         "stripe_customer_id",
         "cus_abc123"
       );
+    });
+  });
+
+  // --- Database error handling ---
+
+  describe("database error handling", () => {
+    it("returns 500 when checkout profile update fails", async () => {
+      mockAdminClient._chain.eq.mockResolvedValueOnce({
+        error: { message: "Row not found", code: "PGRST116" },
+      });
+
+      mockStripe.webhooks.constructEvent.mockReturnValueOnce(
+        makeEvent("checkout.session.completed", {
+          metadata: { supabase_user_id: "user-123", tier: "pro" },
+          customer: "cus_abc123",
+        })
+      );
+
+      const response = await POST(makeRequest("{}"));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe("Database update failed");
+    });
+
+    it("returns 500 when subscription update fails", async () => {
+      mockAdminClient._chain.eq.mockResolvedValueOnce({
+        error: { message: "Connection refused", code: "08006" },
+      });
+
+      mockStripe.webhooks.constructEvent.mockReturnValueOnce(
+        makeEvent("customer.subscription.updated", {
+          customer: "cus_abc123",
+          status: "active",
+          current_period_start: 1735689600,
+        })
+      );
+
+      const response = await POST(makeRequest("{}"));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe("Database update failed");
+    });
+
+    it("returns 500 when subscription deletion update fails", async () => {
+      mockAdminClient._chain.eq.mockResolvedValueOnce({
+        error: { message: "Timeout", code: "57014" },
+      });
+
+      mockStripe.webhooks.constructEvent.mockReturnValueOnce(
+        makeEvent("customer.subscription.deleted", {
+          customer: "cus_abc123",
+        })
+      );
+
+      const response = await POST(makeRequest("{}"));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe("Database update failed");
     });
   });
 
