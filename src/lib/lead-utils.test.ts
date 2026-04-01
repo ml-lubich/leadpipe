@@ -6,7 +6,7 @@ import {
   buildConversionFunnel,
   calculateCampaignHealth,
 } from "./lead-utils";
-import { Lead, LeadStatus } from "@/types";
+import { DigitalGaps, Lead, LeadStatus } from "@/types";
 
 function makeLead(overrides: Partial<Lead> = {}): Lead {
   return {
@@ -48,13 +48,13 @@ function makeLead(overrides: Partial<Lead> = {}): Lead {
 // ---------------------------------------------------------------------------
 describe("getGapsList", () => {
   it("returns empty array when gaps is null or undefined", () => {
-    expect(getGapsList(null as any)).toEqual([]);
-    expect(getGapsList(undefined as any)).toEqual([]);
+    expect(getGapsList(null as unknown as DigitalGaps)).toEqual([]);
+    expect(getGapsList(undefined as unknown as DigitalGaps)).toEqual([]);
   });
 
   it("returns empty array when gaps is not an object", () => {
-    expect(getGapsList("bad" as any)).toEqual([]);
-    expect(getGapsList(42 as any)).toEqual([]);
+    expect(getGapsList("bad" as unknown as DigitalGaps)).toEqual([]);
+    expect(getGapsList(42 as unknown as DigitalGaps)).toEqual([]);
   });
 
   it("returns empty array when no gaps are true", () => {
@@ -73,12 +73,12 @@ describe("getGapsList", () => {
 
   it("returns short labels by default", () => {
     const gaps = { no_website: true, no_ssl: true };
-    expect(getGapsList(gaps as any)).toEqual(["No website", "No SSL"]);
+    expect(getGapsList(gaps as unknown as DigitalGaps)).toEqual(["No website", "No SSL"]);
   });
 
   it("returns long labels when variant is 'long'", () => {
     const gaps = { no_website: true, poor_mobile: true };
-    expect(getGapsList(gaps as any, "long")).toEqual([
+    expect(getGapsList(gaps as unknown as DigitalGaps, "long")).toEqual([
       "No website",
       "Poor mobile experience",
     ]);
@@ -100,12 +100,12 @@ describe("getGapsList", () => {
 
   it("uses the key as fallback for unknown gap keys", () => {
     const gaps = { unknown_gap: true };
-    expect(getGapsList(gaps as any)).toEqual(["unknown_gap"]);
+    expect(getGapsList(gaps as unknown as DigitalGaps)).toEqual(["unknown_gap"]);
   });
 
   it("ignores gap entries that are not exactly true", () => {
     const gaps = { no_website: "yes", no_ssl: 1, poor_mobile: true };
-    expect(getGapsList(gaps as any)).toEqual(["Poor mobile"]);
+    expect(getGapsList(gaps as unknown as DigitalGaps)).toEqual(["Poor mobile"]);
   });
 });
 
