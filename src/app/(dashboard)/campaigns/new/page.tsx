@@ -28,10 +28,17 @@ export default function NewCampaignPage() {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [inputErrors, setInputErrors] = useState({ trade: "", city: "" });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trade || !city) return;
+    if (!trade || !city.trim()) {
+      setInputErrors({
+        trade: trade ? "" : "Please select a trade.",
+        city: city.trim() ? "" : "City cannot be empty."
+      });
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -95,18 +102,24 @@ export default function NewCampaignPage() {
           <form onSubmit={handleCreate} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="trade">Trade</Label>
-              <Select value={trade} onValueChange={(v) => setTrade(v ?? "")}>
-                <SelectTrigger id="trade">
-                  <SelectValue placeholder="Select a trade..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRADES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Select value={trade} onValueChange={(v) => setTrade(v ?? "")}
+                onBlur={() =>
+                  setInputErrors((prev) => ({ ...prev, trade: trade ? "" : "Please select a trade." }))
+                }>
+              <SelectTrigger id="trade">
+                <SelectValue placeholder="Select a trade..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TRADES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {inputErrors.trade && (
+              <p className="text-sm text-destructive">{inputErrors.trade}</p>
+            )}
             </div>
 
             <div className="space-y-2">
@@ -116,19 +129,25 @@ export default function NewCampaignPage() {
                 placeholder="e.g. Los Angeles, CA"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                onBlur={() =>
+                  setInputErrors((prev) => ({ ...prev, city: city.trim() ? "" : "City cannot be empty." }))
+                }
                 maxLength={100}
               />
+              {inputErrors.city && (
+                <p className="text-sm text-destructive">{inputErrors.city}</p>
+              )}
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full flex justify-center items-center gap-2"
               size="lg"
               disabled={!trade || !city.trim() || loading}
             >
-              {loading ? "Creating..." : "Create Campaign"}
+              {loading && <span className='loader spinner-border spinner-border-sm' />} {loading ? "Creating..." : "Create Campaign"}
             </Button>
           </form>
         </CardContent>
