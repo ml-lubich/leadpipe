@@ -22,15 +22,6 @@ import {
 } from "@/components/ui/select";
 import { TRADES } from "@/types";
 
-function validateInputs(trade, city, setInputErrors) {
-  const errors = {
-    trade: trade ? "" : "Please select a trade.",
-    city: city.trim() ? "" : "City cannot be empty."
-  };
-  setInputErrors(errors);
-  return !errors.trade && !errors.city;
-}
-
 export default function NewCampaignPage() {
   const router = useRouter();
   const [trade, setTrade] = useState("");
@@ -41,17 +32,27 @@ export default function NewCampaignPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateInputs(trade, city, setInputErrors)) return;
+    if (!trade || !city.trim()) {
+      setInputErrors({
+        trade: trade ? "" : "Please select a trade.",
+        city: city.trim() ? "" : "City cannot be empty."
+      });
+      return;
+    }
 
-    const payload = { trade_type: trade, location: city }; // Deduplicated JSON prep
     setLoading(true);
     setError("");
-  
+
     try {
       const response = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          trade_type: trade,
+          location: city,
+          trade,
+          city,
+        }),
       });
 
       const data = await response.json();
