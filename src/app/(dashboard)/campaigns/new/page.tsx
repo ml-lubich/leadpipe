@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { TRADES } from "@/types";
 
-function validateInputs(trade, city, setInputErrors) {
+function validateInputs(trade: string, city: string, setInputErrors: (errors: { trade: string; city: string }) => void) {
   const errors = {
     trade: trade ? "" : "Please select a trade.",
     city: city.trim() ? "" : "City cannot be empty."
