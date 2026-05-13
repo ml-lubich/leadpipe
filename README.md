@@ -2,6 +2,44 @@
 
 AI-powered lead generation for local trade businesses — HVAC, plumbers, electricians, roofers, landscapers, and more.
 
+```mermaid
+flowchart LR
+    USER(("👤<br/>Trade owner"))
+    UI{{"🖥 Next.js 16<br/>App Router · shadcn/ui"}}
+    AUTH["🔐 Supabase Auth<br/>Google OAuth"]
+    DB[("🗄 Supabase PG<br/>RLS + RPC")]
+    AI["🤖 OpenAI<br/>gpt-4o-mini<br/>scoring + outreach"]
+    STRIPE["💳 Stripe<br/>Checkout + Webhooks"]
+    EMAIL["📤 Resend<br/>cold email"]
+
+    USER --> UI
+    UI --> AUTH --> DB
+    UI --> AI
+    UI --> STRIPE
+    AI --> DB
+    UI --> EMAIL
+    STRIPE -. webhook .-> UI
+
+    classDef io fill:#0e1116,stroke:#2f81f7,stroke-width:1.5px,color:#e6edf3;
+    classDef brain fill:#161b22,stroke:#d29922,stroke-width:1.5px,color:#e6edf3;
+    classDef tool fill:#161b22,stroke:#3fb950,stroke-width:1.5px,color:#e6edf3;
+    classDef out fill:#0e1116,stroke:#a371f7,stroke-width:1.5px,color:#e6edf3;
+    class USER io;
+    class UI,AI brain;
+    class AUTH,DB,STRIPE tool;
+    class EMAIL out;
+```
+
+## Table of contents
+
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [API routes](#api-routes)
+- [Project structure](#project-structure)
+- [Subscription tiers](#subscription-tiers)
+- [License](#license)
+
 ## Features
 
 - **Lead Discovery** — Enter a trade + city to find businesses that need your services
