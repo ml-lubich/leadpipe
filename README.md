@@ -33,12 +33,59 @@ flowchart LR
 ## Table of contents
 
 - [Features](#features)
+- [Lead pipeline (algorithm)](#lead-pipeline-algorithm)
+- [Outreach sequence](#outreach-sequence)
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
 - [API routes](#api-routes)
 - [Project structure](#project-structure)
 - [Subscription tiers](#subscription-tiers)
 - [License](#license)
+
+## Lead pipeline (algorithm)
+
+```mermaid
+flowchart LR
+    A([start campaign])
+    B["discover<br/>trade + city query"]
+    C["enrich<br/>website · reviews · presence"]
+    D["score 0-100<br/>gpt-4o-mini"]
+    E{"score &ge;<br/>threshold?"}
+    F["draft personalized email<br/>gpt-4o-mini"]
+    G["send via Resend"]
+    H["log open / reply"]
+    Z([end])
+    A --> B --> C --> D --> E
+    E -- yes --> F --> G --> H --> Z
+    E -- no --> Z
+```
+
+## Outreach sequence
+
+```mermaid
+sequenceDiagram
+    participant U as owner
+    participant UI as Next.js UI
+    participant API as /api/outreach
+    participant AI as OpenAI
+    participant R as Resend
+    participant DB as Supabase
+    participant L as lead
+
+    U->>UI: launch campaign
+    UI->>API: POST campaign
+    API->>DB: insert leads (status=NEW)
+    loop per lead
+        API->>AI: prompt(lead, template)
+        AI-->>API: email body
+        API->>R: send(email)
+        R-->>L: cold email
+        API->>DB: status=SENT
+    end
+    L-->>R: open / reply webhook
+    R-->>API: webhook
+    API->>DB: status=ENGAGED
+```
 
 ## Features
 
