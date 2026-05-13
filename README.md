@@ -42,6 +42,7 @@ flowchart LR
 - [Subscription tiers](#subscription-tiers)
 - [License](#license)
 - [🗺️ Repository map](#️-repository-map)
+- [📊 Code composition](#-code-composition)
 
 ## Lead pipeline (algorithm)
 
@@ -254,4 +255,21 @@ mindmap
       next.config.ts
       package.json
       tsconfig.json
+```
+
+
+## 📊 Code composition
+
+File-type breakdown of source under this repo (skips `.git`, `node_modules`, build caches, lockfiles).
+
+```mermaid
+pie showData title File-type composition of leadpipe (112 files)
+    "TypeScript" : 79
+    "Other" : 10
+    "Markdown" : 7
+    "SQL" : 5
+    "SVG image" : 5
+    "JSON" : 3
+    "JavaScript" : 2
+    "Image" : 1
 ```
