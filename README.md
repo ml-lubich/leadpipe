@@ -41,6 +41,7 @@ flowchart LR
 - [Project structure](#project-structure)
 - [Subscription tiers](#subscription-tiers)
 - [License](#license)
+- [🗺️ Repository map](#️-repository-map)
 
 ## Lead pipeline (algorithm)
 
@@ -224,3 +225,33 @@ supabase/
 ## License
 
 MIT
+
+
+## 🗺️ Repository map
+
+Top-level layout of `leadpipe` rendered as a Mermaid mindmap (auto-generated from the on-disk tree).
+
+```mermaid
+mindmap
+  root((leadpipe))
+    public/
+      file.svg
+      globe.svg
+      next.svg
+      vercel.svg
+      window.svg
+    src/
+      __tests__
+      app
+      components
+      lib
+      proxy.ts
+      types
+    supabase/
+      migrations
+    files
+      README.md
+      next.config.ts
+      package.json
+      tsconfig.json
+```
